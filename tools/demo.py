@@ -67,7 +67,7 @@ def vis_detections(image_name, im, class_name, dets, thresh=0.5):
     plt.draw()
     # save the image
     fig = plt.gcf()
-    fig.savefig("output_"+image_name+".png")
+    fig.savefig("output_"+image_name)
 
 
 def demo(net, image_name):
