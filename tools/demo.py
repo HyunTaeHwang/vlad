@@ -24,12 +24,10 @@ import scipy.io as sio
 import caffe, os, sys, cv2
 import argparse
 
-CLASSES = ('__background__',
-           'aeroplane', 'bicycle', 'bird', 'boat',
-           'bottle', 'bus', 'car', 'cat', 'chair',
-           'cow', 'diningtable', 'dog', 'horse',
-           'motorbike', 'person', 'pottedplant',
-           'sheep', 'sofa', 'train', 'tvmonitor')
+CLASSES = ('__background__',)
+synsets = sio.loadmat(os.path.join('/media/VSlab2/imagenet/ILSVRC13', 'data', 'meta_det.mat'))
+for i in xrange(200):
+    CLASSES = CLASSES + (synsets['synsets'][0][i][2][0],)
 
 NETS = {'vgg16': ('VGG16',
                   'VGG16_faster_rcnn_final.caffemodel'),
@@ -117,10 +115,8 @@ if __name__ == '__main__':
 
     args = parse_args()
 
-    prototxt = os.path.join(cfg.ROOT_DIR, 'models', NETS[args.demo_net][0],
-                            'faster_rcnn_alt_opt', 'faster_rcnn_test.pt')
-    caffemodel = os.path.join(cfg.ROOT_DIR, 'data', 'faster_rcnn_models',
-                              NETS[args.demo_net][1])
+    prototxt = os.path.join(cfg.ROOT_DIR, 'models/VGG16/faster_rcnn_end2end/test.prototxt')
+    caffemodel = '/home/andrewliao11/Tracker/vgg16_faster_rcnn_iter_100000.caffemodel'
 
     if not os.path.isfile(caffemodel):
         raise IOError(('{:s} not found.\nDid you run ./data/script/'
