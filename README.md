@@ -56,6 +56,17 @@ for ix, obj in enumerate(objs):
     cls = self._wnid_to_ind[str(get_data_from_tag(obj, "name")).lower().strip()]
 ```
 Noted that in faster rcnnn, we don't need to run the selective-search, which is the main difference from fast rcnn.
+## Modify the prototxt
+**train.prototxt**    
+Change the number of classes into 200+1
+```
+param_str: "'num_classes': 201"
+```
+In layer "bbox_pred", change the number of output into (200+1)*4
+```
+num_output: 804
+```
+You can modify the **test.prototxt** in the same way. 
 ## Start to Train On Imagenet!
 Run the **$FRCNN/experiments/scripts/faster_rcnn_end2end_imagenet.sh**.   
 The use of .sh file is just the same as the original [faster rcnn ](https://github.com/rbgirshick/py-faster-rcnn)
