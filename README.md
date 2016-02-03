@@ -1,3 +1,4 @@
+if you want to refer to the original README.md, read the original_README.md 
 # Training Faster RCNN on Imagenet
 
 ## preparing data
