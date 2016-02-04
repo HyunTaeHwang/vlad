@@ -67,9 +67,18 @@ In layer "bbox_pred", change the number of output into (200+1)*4
 num_output: 804
 ```
 You can modify the **test.prototxt** in the same way. 
-## Start to Train On Imagenet!
+## Start to Train Faster RCNN On Imagenet!
 Run the **$FRCNN/experiments/scripts/faster_rcnn_end2end_imagenet.sh**.   
 The use of .sh file is just the same as the original [faster rcnn ](https://github.com/rbgirshick/py-faster-rcnn)
+## Demo
+Just run the **demo.py** to visualize pictures! 
+![demo_02](https://github.com/andrewliao11/py-faster-rcnn/blob/master/tools/output_demo_02.jpg?raw=true)
+![demo_03](https://github.com/andrewliao11/py-faster-rcnn/blob/master/tools/output_demo_03.jpg?raw=true)
+
+### faster rcnn with tracker on videos
+[![IMAGE ALT TEXT HERE](http://img.youtube.com/vi/wY7LADoEuFs/0.jpg)](http://www.youtube.com/watch?v=wY7LADoEuFs)
+
+Original video "https://www.jukinmedia.com/videos/view/5655"
 ## Reference
 [How to train fast rcnn on imagenet](http://sunshineatnoon.github.io/Train-fast-rcnn-model-on-imagenet-without-matlab/)
 
