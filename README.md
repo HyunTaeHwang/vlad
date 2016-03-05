@@ -6,9 +6,11 @@ if you want to refer to the original README.md, read the original_README.md
 ```
 ILSVRC13 
 └─── LSVRC2013_DET_val
-    │   *.JPEG (Image files)
+    │   *.JPEG (Image files, ex:ILSVRC2013_val_00000565.JPEG)
 └─── data
     │   meta_det.mat
+    └─── det_lists
+             │  val1.txt, val2.txt
 ```
 Load the meta_det.mat file by 
 ```
@@ -57,7 +59,8 @@ for ix, obj in enumerate(objs):
 ```
 Noted that in faster rcnnn, we don't need to run the selective-search, which is the main difference from fast rcnn.
 ## Modify the prototxt
-**train.prototxt**    
+Under the directory **$FRCNN_ROOT/**   
+#### train.prototxt   
 Change the number of classes into 200+1
 ```
 param_str: "'num_classes': 201"
@@ -67,6 +70,17 @@ In layer "bbox_pred", change the number of output into (200+1)*4
 num_output: 804
 ```
 You can modify the **test.prototxt** in the same way. 
+
+## [Last step] Modify the shell script
+Under the dircetory **$FRCNN_ROOT/experiments/scripts**   
+#### faster_rcnn_end2end_imagenet.sh
+You can specify which dataset to train/test on and your what pre-trainded model is
+```
+ITERS=100000
+DATASET_TRAIN=imagenet_val1
+DATASET_TEST=imagenet_val2
+NET_INIT=data/imagenet_models/${NET}.v2.caffemodel
+```
 ## Start to Train Faster RCNN On Imagenet!
 Run the **$FRCNN/experiments/scripts/faster_rcnn_end2end_imagenet.sh**.   
 The use of .sh file is just the same as the original [faster rcnn ](https://github.com/rbgirshick/py-faster-rcnn)
