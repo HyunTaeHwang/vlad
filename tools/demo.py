@@ -25,7 +25,7 @@ import caffe, os, sys, cv2
 import argparse
 
 CLASSES = ('__background__',)
-synsets = sio.loadmat(os.path.join('/media/VSlab2/imagenet/ILSVRC13', 'data', 'meta_det.mat'))
+synsets = sio.loadmat(os.path.join('data/ILSVRC2014/ILSVRC2014_devkit', 'data', 'meta_det.mat'))
 for i in xrange(200):
     CLASSES = CLASSES + (synsets['synsets'][0][i][2][0],)
 
@@ -118,8 +118,8 @@ if __name__ == '__main__':
 
     args = parse_args()
 
-    prototxt = os.path.join(cfg.ROOT_DIR, 'models/VGG16/faster_rcnn_end2end/test.prototxt')
-    caffemodel = '/home/andrewliao11/Tracker/vgg16_faster_rcnn_iter_100000.caffemodel'
+    prototxt = os.path.join(cfg.ROOT_DIR, 'models/imagenet/VGG16/faster_rcnn_end2end/test.prototxt')
+    caffemodel = 'output/faster_rcnn_end2end/train_all/vgg16_faster_rcnn_iter_10000.caffemodel'
 
     if not os.path.isfile(caffemodel):
         raise IOError(('{:s} not found.\nDid you run ./data/script/'
@@ -140,7 +140,8 @@ if __name__ == '__main__':
     for i in xrange(2):
         _, _= im_detect(net, im)
 
-    im_names = ['demo_01.jpg', 'demo_02.jpg', 'demo_03.jpg', 'demo_04.jpg', 'demo_05.jpg']
+#     im_names = ['demo_01.jpg', 'demo_02.jpg', 'demo_03.jpg', 'demo_04.jpg', 'demo_05.jpg']
+    im_names = ['demo_01.jpg']
     #im_names = ['demo_01.jpg']
     for im_name in im_names:
         print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'

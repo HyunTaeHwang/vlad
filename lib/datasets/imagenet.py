@@ -16,7 +16,7 @@ import scipy.io as sio
 import utils.cython_bbox
 import cPickle
 import subprocess
-from PIL import Image
+# from PIL import Image
 
 train_det_path = "ILSVRC2014_DET_train"
 train_det_bbox_path = "ILSVRC2014_DET_bbox_train"
@@ -233,7 +233,7 @@ class imagenet(imdb):
             filename = os.path.join(self._val_det_bbox, index + '.xml')
             image_path = os.path.join(self._val_det_img, index + self._image_ext[0])
        
-        im = Image.open(image_path)
+        #im = Image.open(image_path)
         # print 'Loading: {}'.format(filename) 
         def get_data_from_tag(node, tag):
             return node.getElementsByTagName(tag)[0].childNodes[0].data
@@ -244,8 +244,8 @@ class imagenet(imdb):
         sizes = data.getElementsByTagName('size')
         width = int(get_data_from_tag(sizes[0], 'width'))
         height = int(get_data_from_tag(sizes[0], 'height'))
-        if im.width != width or im.height != height:
-            print "Image size wxh {} {}x{} ".format(im.size, width, height)
+       # if im.width != width or im.height != height:
+        #    print "Image size wxh {} {}x{} ".format(im.size, width, height)
 
         objs = data.getElementsByTagName('object')
         num_objs = len(objs)
@@ -267,6 +267,14 @@ class imagenet(imdb):
             y2 = float(get_data_from_tag(obj, 'ymax'))
             cls = self._wnid_to_ind[
                     str(get_data_from_tag(obj, "name")).lower().strip()]
+            if x1 > x2 or y1 > y2:
+                print "Malformed bounding box wxh:{} {} {} {} {} {}\n{}\n{}".format(
+                        width, height, x1, x2, y1, y2, filename, image_path)
+                continue
+            
+            if x2 > width - 1: x2 = width - 1 
+            if y2 > height - 1 : y2 = height - 1 
+            
             boxes[ix, :] = [x1, y1, x2, y2]
             gt_classes[ix] = cls
             overlaps[ix, cls] = 1.0
