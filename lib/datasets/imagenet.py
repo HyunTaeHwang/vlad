@@ -7,6 +7,7 @@
 
 import datasets
 import datasets.imagenet
+from imagenet_eval import voc_eval
 import os, sys
 from datasets.imdb import imdb
 import xml.dom.minidom as minidom
@@ -22,6 +23,8 @@ train_det_path = "ILSVRC2014_DET_train"
 train_det_bbox_path = "ILSVRC2014_DET_bbox_train"
 val_det_path = "ILSVRC2014_DET_val"
 val_det_bbox_path = "ILSVRC2014_DET_bbox_val"
+
+min_ratio, max_ratio = 0.2, 12.5
 
 
 class imagenet(imdb):
@@ -41,7 +44,7 @@ class imagenet(imdb):
         print  self._val_det_bbox
         self._devkit_path = devkit_path
         
-#         self._data_path = os.path.join(self._devkit_path, 'data/ILSVRC2013_DET_' + self._image_set[:-1])
+#         self._data_path = os.path.join(self._devkit_path, 'data/ILSVRC2True013_DET_' + self._image_set[:-1])
         synsets = sio.loadmat(os.path.join(self._devkit_path, 'data', 'meta_det.mat'))
         self._classes = ('__background__',)
         self._wnid = (0,)
@@ -58,7 +61,7 @@ class imagenet(imdb):
 
         # Specific config options
         self.config = {'cleanup'  : True,
-                       'use_salt' : True,
+                       'use_salt' : False,
                        'top_k'    : 2000}
 
         assert os.path.exists(self._devkit_path), \
@@ -255,6 +258,7 @@ class imagenet(imdb):
         overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
 
         # Load object bounding boxes into a data frame.
+        bad_count = 0
         for ix, obj in enumerate(objs):
             # Make pixel indexes 0-based
             #x1 = float(get_data_from_tag(obj, 'xmin')) - 1
@@ -267,9 +271,18 @@ class imagenet(imdb):
             y2 = float(get_data_from_tag(obj, 'ymax'))
             cls = self._wnid_to_ind[
                     str(get_data_from_tag(obj, "name")).lower().strip()]
-            if x1 > x2 or y1 > y2:
+            if x1 >= x2 or y1 >= y2:
                 print "Malformed bounding box wxh:{} {} {} {} {} {}\n{}\n{}".format(
                         width, height, x1, x2, y1, y2, filename, image_path)
+                continue
+            
+            w = float(x2 - x1 + 1)
+            h = float(y2 - y1 + 1)
+            aspect_ratio = w / h
+            if aspect_ratio < min_ratio or aspect_ratio > max_ratio:
+                print "Bad aspect ratio:{} for image\n{}\n{}".format(
+                    aspect_ratio, filename, image_path)
+                bad_count += 1
                 continue
             
             if x2 > width - 1: x2 = width - 1 
@@ -278,6 +291,10 @@ class imagenet(imdb):
             boxes[ix, :] = [x1, y1, x2, y2]
             gt_classes[ix] = cls
             overlaps[ix, cls] = 1.0
+        
+        if bad_count == num_objs:
+            print "Warning all objs have bad a/r:\n{}\n{}".format(
+                    filename, image_path)
 
         overlaps = scipy.sparse.csr_matrix(overlaps)
 
@@ -286,31 +303,43 @@ class imagenet(imdb):
                 'gt_overlaps' : overlaps,
                 'flipped' : False}
 
+
     def _write_imagenet_results_file(self, all_boxes):
         use_salt = self.config['use_salt']
+        print "Use salt {}".format(use_salt)
         comp_id = 'comp4'
-        if use_salt:
-            comp_id += '-{}'.format(os.getpid())
+#         if use_salt:
+#             comp_id += '-{}'.format(os.getpid())
 
         # VOCdevkit/results/comp4-44503_det_test_aeroplane.txt
         path = os.path.join(self._devkit_path, 'results', comp_id + '_')
-        print 'Writing {} results file'.format(self.name)
-        filename = path + 'det_' + self._image_set + '.txt'
-	with open(filename, 'wt') as f:
-        	for im_ind, index in enumerate(self.image_index):
-			for cls_ind, cls in enumerate(self.classes):
-				if cls == '__background__':
-					continue
-                		dets = all_boxes[cls_ind][im_ind]
-                		if dets == []:
-                        		continue
-                    		# the VOCdevkit expects 1-based indices
-                    		for k in xrange(dets.shape[0]):
-                        		f.write('{:d} {:d} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f}\n'.
-                                		format(im_ind + 1, cls_ind, dets[k, -1],
-                                       		dets[k, 0] + 1, dets[k, 1] + 1,
-                                       		dets[k, 2] + 1, dets[k, 3] + 1))
+        for cls_ind, cls in enumerate(self.classes):
+            if cls == '__background__':
+                continue
+#             print 'Writing {} VOC results file'.format(cls)
+            filename = self._get_imagenet_results_file_template().format(cls)
+            with open(filename, 'wt') as f:
+                for im_ind, index in enumerate(self.image_index):
+                    dets = all_boxes[cls_ind][im_ind]
+                    if dets == []:
+                        continue
+                    # the VOCdevkit expects 1-based indices
+                    for k in xrange(dets.shape[0]):
+                        f.write('{:s} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f}\n'.
+                                format(index, dets[k, -1],
+                                       dets[k, 0] + 1, dets[k, 1] + 1,
+                                       dets[k, 2] + 1, dets[k, 3] + 1))
+        
         return comp_id
+    
+    def _get_imagenet_results_file_template(self):
+        # VOCdevkit/results/VOC2007/Main/<comp_id>_det_test_aeroplane.txt
+        filename = 'comp4' + '_{:s}.txt'
+        print filename
+        path = os.path.join(
+            self._devkit_path, 'results',
+            filename)
+        return path
 
     def _do_matlab_eval(self, comp_id, output_dir='output'):
         rm_results = self.config['cleanup']
@@ -325,10 +354,50 @@ class imagenet(imdb):
                        self._image_set, output_dir, int(rm_results))
         print('Running:\n{}'.format(cmd))
         status = subprocess.call(cmd, shell=True)
+        
+    def _do_python_eval(self, output_dir = 'output'):
+        annopath = os.path.join(self._val_det_bbox, '{:s}.xml')
+        print "Anno path {}".format(annopath)
+        imagesetfile = os.path.join(
+            self._devkit_path, "data/det_lists",
+            self._image_set + '.txt')
+        cachedir = os.path.join(self._devkit_path, 'annotations_cache')
+        aps = []
+        # The PASCAL VOC metric changed in 2010
+        use_07_metric = True
+        print 'VOC07 metric? ' + ('Yes' if use_07_metric else 'No')
+        if not os.path.isdir(output_dir):
+            os.mkdir(output_dir)
+        for i, cls in enumerate(self._classes):
+            if cls == '__background__':
+                continue
+            filename = self._get_imagenet_results_file_template().format(cls)
+            print "File name {}".format(filename)
+            rec, prec, ap = voc_eval(self._wnid_to_ind, self._class_to_ind,
+                filename, annopath, imagesetfile, cls, cachedir, ovthresh=0.5,
+                use_07_metric=use_07_metric)
+            aps += [ap]
+            print('AP for {} = {:.4f}'.format(cls, ap))
+            with open(os.path.join(output_dir, cls + '_pr.pkl'), 'w') as f:
+                cPickle.dump({'rec': rec, 'prec': prec, 'ap': ap}, f)
+        print('Mean AP = {:.4f}'.format(np.mean(aps)))
+        print('~~~~~~~~')
+        print('Results:')
+        for ap in aps:
+            print('{:.3f}'.format(ap))
+        print('{:.3f}'.format(np.mean(aps)))
+        print('~~~~~~~~')
+        print('')
+        print('--------------------------------------------------------------')
+        print('Results computed with the **unofficial** Python eval code.')
+        print('Results should be very close to the official MATLAB eval code.')
+        print('Recompute with `./tools/reval.py --matlab ...` for your paper.')
+        print('-- Thanks, The Management')
+        print('--------------------------------------------------------------')
 
     def evaluate_detections(self, all_boxes, output_dir):
-        comp_id = self._write_imagenet_results_file(all_boxes)
-        self._do_matlab_eval(comp_id, output_dir)
+        self._comp_id = self._write_imagenet_results_file(all_boxes)
+        self._do_python_eval(output_dir)
 
     def competition_mode(self, on):
         if on:

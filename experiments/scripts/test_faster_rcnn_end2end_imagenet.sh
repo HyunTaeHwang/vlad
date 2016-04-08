@@ -13,9 +13,10 @@ export PYTHONUNBUFFERED="True"
 GPU_ID=$1
 NET=$2
 NET_lc=${NET,,}
-ITERS=100000
-DATASET_TRAIN=imagenet_val1
-DATASET_TEST=imagenet_val2
+ITERS=70000
+DATASET_TEST=val1
+
+#NET_FINAL=output/faster_rcnn_end2end/train_100/vgg16_faster_rcnn_iter_100.caffemodel
 
 array=( $@ )
 len=${#array[@]}
@@ -26,11 +27,10 @@ LOG="experiments/logs/faster_rcnn_${NET}_${EXTRA_ARGS_SLUG}.txt.`date +'%Y-%m-%d
 exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 
-NET_INIT=data/imagenet_models/${NET}.v2.caffemode
-NET_FINAL=/home/andrewliao11/py-faster-rcnn/output/faster_rcnn_end2end/val1/vgg16_faster_rcnn_iter_70000.caffemodel
+NET_FINAL=output/faster_rcnn_end2end/train_curated/vgg16_faster_rcnn_iter_$ITERS.caffemodel
 
 time ./tools/test_net_imagenet.py --gpu ${GPU_ID} \
-  --def models/${NET}/faster_rcnn_end2end/test.prototxt \
+  --def models/imagenet/${NET}/faster_rcnn_end2end/test.prototxt \
   --net ${NET_FINAL} \
   --imdb ${DATASET_TEST} \
   --cfg experiments/cfgs/faster_rcnn_end2end.yml \

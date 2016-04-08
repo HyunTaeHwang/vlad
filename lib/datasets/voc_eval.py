@@ -28,6 +28,22 @@ def parse_rec(filename):
 
     return objects
 
+def parse_rec1(filename):
+    """ Parse a PASCAL VOC xml file """
+    tree = ET.parse(filename)
+    objects = []
+    for obj in tree.findall('object'):
+        obj_struct = {}
+        obj_struct['name'] = obj.find('name').text
+        bbox = obj.find('bndbox')
+        obj_struct['bbox'] = [int(bbox.find('xmin').text),
+                              int(bbox.find('ymin').text),
+                              int(bbox.find('xmax').text),
+                              int(bbox.find('ymax').text)]
+        objects.append(obj_struct)
+
+    return objects
+
 def voc_ap(rec, prec, use_07_metric=False):
     """ ap = voc_ap(rec, prec, [use_07_metric])
     Compute VOC AP given precision and recall.

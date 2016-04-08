@@ -119,7 +119,7 @@ if __name__ == '__main__':
     args = parse_args()
 
     prototxt = os.path.join(cfg.ROOT_DIR, 'models/imagenet/VGG16/faster_rcnn_end2end/test.prototxt')
-    caffemodel = 'output/faster_rcnn_end2end/train_all/vgg16_faster_rcnn_iter_20000.caffemodel'
+    caffemodel = 'output/faster_rcnn_end2end/train_curated/vgg16_faster_rcnn_iter_30000.caffemodel'
 
     if not os.path.isfile(caffemodel):
         raise IOError(('{:s} not found.\nDid you run ./data/script/'
@@ -140,7 +140,7 @@ if __name__ == '__main__':
     for i in xrange(2):
         _, _= im_detect(net, im)
 
-    im_names = ['demo_01.jpg', 'demo_02.jpg'] #, 'demo_03.jpg', 'demo_04.jpg', 'demo_05.jpg']
+    im_names = ['demo_01.jpg', 'demo_02.jpg', 'test1.jpg'] #, 'demo_03.jpg', 'demo_04.jpg', 'demo_05.jpg']
     #im_names = ['demo_01.jpg']
     #im_names = ['demo_01.jpg']
     for im_name in im_names:

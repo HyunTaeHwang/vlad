@@ -13,9 +13,9 @@ export PYTHONUNBUFFERED="True"
 GPU_ID=$1
 NET=$2
 NET_lc=${NET,,}
-#ITERS=100000
-ITERS=100
-DATASET_TRAIN=train_all
+ITERS=100000
+#ITERS=100
+DATASET_TRAIN=train_curated
 DATASET_TEST=val1
 
 array=( $@ )
@@ -38,10 +38,10 @@ time ./tools/train_net_imagenet.py --gpu ${GPU_ID} \
   ${EXTRA_ARGS}
 
 set +x
-#NET_FINAL=`grep -B 1 "done solving" ${LOG} | grep "Wrote snapshot" | awk '{print $4}'`
+NET_FINAL=`grep -B 1 "done solving" ${LOG} | grep "Wrote snapshot" | awk '{print $4}'`
 set -x
 
-NET_FINAL=output/faster_rcnn_end2end/train_100/vgg16_faster_rcnn_iter_100.caffemodel
+#NET_FINAL=output/faster_rcnn_end2end/train_100/vgg16_faster_rcnn_iter_100.caffemodel
 
 time ./tools/test_net_imagenet.py --gpu ${GPU_ID} \
   --def models/imagenet/${NET}/faster_rcnn_end2end/test.prototxt \

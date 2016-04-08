@@ -23,7 +23,7 @@ def _selective_search_IJCV_top_k(split, year, top_k):
 
 # Set up voc_<year>_<split> using selective search "fast" mode
 # for split in ['train', 'val', 'val1', 'val2', 'test']:
-for split in ['train_all', 'train_100', 'val1', 'val_100']:
+for split in ['train_curated', 'train_100', 'val1', 'val_100']:
     name = '{}'.format(split)
     devkit_path = 'data/ILSVRC2014/ILSVRC2014_devkit'
     __sets[name] = (lambda split=split, devkit_path = devkit_path: imagenet(split,devkit_path))
