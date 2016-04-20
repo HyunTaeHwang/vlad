@@ -119,7 +119,7 @@ if __name__ == '__main__':
     args = parse_args()
 
     prototxt = os.path.join(cfg.ROOT_DIR, 'models/imagenet/VGG16/faster_rcnn_end2end/test.prototxt')
-    caffemodel = 'output/faster_rcnn_end2end/train_curated/vgg16_faster_rcnn_iter_30000.caffemodel'
+    caffemodel = 'output/faster_rcnn_end2end/train_curated/vgg16_faster_rcnn_iter_70000.caffemodel'
 
     if not os.path.isfile(caffemodel):
         raise IOError(('{:s} not found.\nDid you run ./data/script/'

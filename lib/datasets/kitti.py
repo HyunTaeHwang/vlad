@@ -17,17 +17,18 @@ import scipy.io as sio
 import utils.cython_bbox
 import cPickle
 import subprocess
-# from PIL import Image
+from PIL import Image
 
-train_det_path = "ILSVRC2014_DET_train"
-train_det_bbox_path = "ILSVRC2014_DET_bbox_train"
-val_det_path = "ILSVRC2014_DET_val"
-val_det_bbox_path = "ILSVRC2014_DET_bbox_val"
+train_det_path = "training/image_2"
+train_det_bbox_path = "training/label_2/xml"
 
-min_ratio, max_ratio = 0.2, 12.5
+val_det_path = "training/image_2"
+val_det_bbox_path = "training/label_2/xml"
+
+min_ratio, max_ratio = 0.065, 15.00
 
 
-class imagenet(imdb):
+class kitti(imdb):
     def __init__(self, image_set, devkit_path):
     
         imdb.__init__(self, image_set)
@@ -45,16 +46,12 @@ class imagenet(imdb):
         self._devkit_path = devkit_path
         
 #         self._data_path = os.path.join(self._devkit_path, 'data/ILSVRC2True013_DET_' + self._image_set[:-1])
-        synsets = sio.loadmat(os.path.join(self._devkit_path, 'data', 'meta_det.mat'))
-        self._classes = ('__background__',)
-        self._wnid = (0,)
-        for i in xrange(200):
-            self._classes = self._classes + (synsets['synsets'][0][i][2][0],)
-            self._wnid = self._wnid + (synsets['synsets'][0][i][1][0],)
-            
-        self._wnid_to_ind = dict(zip(self._wnid, xrange(self.num_classes)))
-        self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
-        self._image_ext = ['.JPEG']
+        self._classes = ('__background__', 'car', 'van', 'truck',
+                     'pedestrian', 'person_sitting', 'cyclist', 'tram', 'misc')
+        
+        self._class_to_ind = dict(zip(self._classes, xrange(self.num_classes)))
+        self._image_ext = ['.png']
+        self._anno_ext = '.txt.xml'
         self._image_index = self._load_image_set_index()
         # Default to roidb handler
         self._roidb_handler = self.selective_search_roidb
@@ -66,8 +63,7 @@ class imagenet(imdb):
 
         assert os.path.exists(self._devkit_path), \
                 'Devkit path does not exist: {}'.format(self._devkit_path)
-#         assert os.path.exists(self._data_path), \
-#                 'Path does not exist: {}'.format(self._data_path)
+
                 
 
     def image_path_at(self, i):
@@ -97,7 +93,7 @@ class imagenet(imdb):
         # self._data_path + /ImageSets/val.txt
         print "Loading images from {}".format(self._image_set)
         print 
-        image_set_file = os.path.join(self._devkit_path, 'data', 'det_lists', self._image_set + '.txt')
+        image_set_file = os.path.join(self._devkit_path, self._image_set + '.txt')
         assert os.path.exists(image_set_file), \
                 'Path does not exist: {}'.format(image_set_file)
         with open(image_set_file) as f:
@@ -173,20 +169,19 @@ class imagenet(imdb):
     def _load_selective_search_roidb(self, gt_roidb):
         filename = os.path.abspath(os.path.join(self._devkit_path, 'selective_search_data',
                                                 self.name + '.mat'))
-        assert os.path.exists(filename), \
-               'Selective search data not found at: {}'.format(filename)
-	raw_data = sio.loadmat(filename)['boxes'].ravel()
+        assert os.path.exists(filename), 'Selective search data not found at: {}'.format(filename)
+        raw_data = sio.loadmat(filename)['boxes'].ravel()
 
         box_list = []
         for i in xrange(raw_data.shape[0]):
             box_list.append(raw_data[i][:, (1, 0, 3, 2)] - 1)
-	    #box_list.append(raw_data[i][:, (1, 0, 3, 2)])
-
-	return self.create_roidb_from_box_list(box_list, gt_roidb)
+        #box_list.append(raw_data[i][:, (1, 0, 3, 2)])
+        
+        return self.create_roidb_from_box_list(box_list, gt_roidb)
 
     def selective_search_IJCV_roidb(self):
         """
-        eturn the database of selective search regions of interest.
+        return the database of selective search regions of interest.
         Ground-truth ROIs are also included.
         This function loads/saves from/to a cache file to speed up future calls.
         """
@@ -229,14 +224,20 @@ class imagenet(imdb):
         """
         Load image and bounding boxes info from txt files of imagenet.
         """
-        filename = os.path.join(self._train_det_bbox, index + '.xml')
+        filename = os.path.join(self._train_det_bbox, index + self._anno_ext)
         image_path = os.path.join(self._train_det_img, index + self._image_ext[0])
         
         if "val" in self._image_set:
-            filename = os.path.join(self._val_det_bbox, index + '.xml')
+            filename = os.path.join(self._val_det_bbox, index + self._anno_ext)
             image_path = os.path.join(self._val_det_img, index + self._image_ext[0])
        
-        #im = Image.open(image_path)
+        im = Image.open(image_path)
+        if im is None:
+            print "PIL. Malformed image {}".format(image_path)
+            return
+        width = im.size[0]
+        height = im.size[1]
+            
         # print 'Loading: {}'.format(filename) 
         def get_data_from_tag(node, tag):
             return node.getElementsByTagName(tag)[0].childNodes[0].data
@@ -245,8 +246,6 @@ class imagenet(imdb):
             data = minidom.parseString(f.read())
             
         sizes = data.getElementsByTagName('size')
-        width = int(get_data_from_tag(sizes[0], 'width'))
-        height = int(get_data_from_tag(sizes[0], 'height'))
        # if im.width != width or im.height != height:
         #    print "Image size wxh {} {}x{} ".format(im.size, width, height)
 
@@ -269,11 +268,16 @@ class imagenet(imdb):
             y1 = float(get_data_from_tag(obj, 'ymin'))
             x2 = float(get_data_from_tag(obj, 'xmax'))
             y2 = float(get_data_from_tag(obj, 'ymax'))
-            cls = self._wnid_to_ind[
+            class_name = get_data_from_tag(obj, "name").lower().strip()
+            if not class_name in self._class_to_ind:
+                print "Object {} ignored".format(class_name)
+                continue
+                
+            cls = self._class_to_ind[
                     str(get_data_from_tag(obj, "name")).lower().strip()]
             if x1 >= x2 or y1 >= y2:
-                print "Malformed bounding box wxh:{} {} {} {} {} {}\n{}\n{}".format(
-                        width, height, x1, x2, y1, y2, filename, image_path)
+                print "Malformed bounding box wxh: {} {} {} {}\n{}\n{}".format(
+                        x1, x2, y1, y2, filename, image_path)
                 continue
             
             w = float(x2 - x1 + 1)
@@ -356,7 +360,7 @@ class imagenet(imdb):
         status = subprocess.call(cmd, shell=True)
         
     def _do_python_eval(self, output_dir = 'output'):
-        annopath = os.path.join(self._val_det_bbox, '{:s}.xml')
+        annopath = os.path.join(self._val_det_bbox, '{:s}' + self._anno_ext)
         print "Anno path {}".format(annopath)
         imagesetfile = os.path.join(
             self._devkit_path, "data/det_lists",
